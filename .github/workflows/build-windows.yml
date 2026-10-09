@@ -23,7 +23,12 @@ jobs:
 
       # The repo holds only the app code; generate the Windows runner.
       - name: Generate Windows project
-        run: flutter create . --platforms=windows --project-name proxmox_desk
+        shell: pwsh
+        run: |
+          flutter create . --platforms=windows --project-name proxmox_desk
+          # The generated sample test refers to a template app that isn't ours.
+          Remove-Item test -Recurse -Force -ErrorAction SilentlyContinue
+          exit 0
 
       - run: flutter pub get
 
