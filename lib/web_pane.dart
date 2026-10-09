@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
@@ -6,14 +7,48 @@ import 'config.dart';
 /// Set in main(). False on Windows when the WebView2 runtime is missing.
 bool webViewAvailable = true;
 
+/// True on Windows, macOS and Linux, where the app owns a resizable window.
+bool get isDesktop =>
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux);
+
+// Keyboard focus sits inside the web page, so the page itself has to catch
+// F11 and pass it back to the app.
+const _f11Script = '''
+if (!window.__pdF11) {
+  window.__pdF11 = true;
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') {
+      e.preventDefault();
+      e.stopPropagation();
+      window.flutter_inappwebview.callHandler('toggleFullScreen');
+    }
+  }, true);
+}
+''';
+
 /// The Proxmox web interface (or one of its console pages) inside the app.
 class WebPane extends StatefulWidget {
-  const WebPane({super.key, required this.config, this.url});
+  const WebPane({
+    super.key,
+    required this.config,
+    this.url,
+    this.showToolbar = true,
+    this.onToggleFullScreen,
+  });
 
   final ServerConfig config;
 
   /// Page to open. Defaults to the web interface home.
   final Uri? url;
+
+  /// Hide the back/reload row, used by full screen consoles.
+  final bool showToolbar;
+
+  /// Called when F11 is pressed inside the page.
+  final VoidCallback? onToggleFullScreen;
 
   @override
   State<WebPane> createState() => _WebPaneState();
@@ -47,7 +82,8 @@ class _WebPaneState extends State<WebPane> {
     }
     return Column(
       children: [
-        Row(
+        if (widget.showToolbar)
+          Row(
           children: [
             IconButton(
               tooltip: 'Back',
@@ -88,10 +124,26 @@ class _WebPaneState extends State<WebPane> {
             ],
           ),
         Expanded(
+          // Keyed so the page survives the toolbar appearing and disappearing.
+          key: const ValueKey('webview'),
           child: InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri.uri(_start)),
             initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
-            onWebViewCreated: (c) => _controller = c,
+            onWebViewCreated: (c) {
+              _controller = c;
+              c.addJavaScriptHandler(
+                handlerName: 'toggleFullScreen',
+                callback: (args) {
+                  widget.onToggleFullScreen?.call();
+                  return null;
+                },
+              );
+            },
+            onLoadStop: (c, url) async {
+              if (widget.onToggleFullScreen != null) {
+                await c.evaluateJavascript(source: _f11Script);
+              }
+            },
             onProgressChanged: (c, p) {
               if (mounted) setState(() => _progress = p / 100);
             },

@@ -3,7 +3,7 @@
 A Flutter client for one Proxmox VE server. Runs on Windows today; the same code builds for iPad.
 
 - **Web interface tab** – the full Proxmox web UI in its own window, signed in once and kept open.
-- **Guests tab** – native list of VMs and containers with CPU, RAM, uptime, start, shut down, reboot, force stop, and a console button.
+- **Guests tab** – native list of VMs and containers with CPU, RAM, uptime, start, shut down, reboot, force stop, and a console button. Consoles have a full screen mode (the button in the title bar, or F11) that covers the whole display like a remote desktop session.
 - **Settings tab** – server, token and accepted certificate.
 
 The source was written without a Flutter toolchain to compile against, so expect to fix a small error or two on the first build. Send me the output of `flutter run` if anything fails.
@@ -71,4 +71,5 @@ Then build through Codemagic as with your other Flutter work. The layout switche
 | `lib/proxmox_api.dart` | Proxmox REST calls and certificate pinning |
 | `lib/setup_screen.dart` | Connect screen |
 | `lib/guests_screen.dart` | VM and container list with power controls |
+| `lib/console_page.dart` | Guest console page with full screen mode |
 | `lib/web_pane.dart` | Embedded web interface and consoles |

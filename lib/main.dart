@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'config.dart';
 import 'guests_screen.dart';
@@ -9,6 +10,7 @@ import 'web_pane.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (isDesktop) await windowManager.ensureInitialized();
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
     webViewAvailable = await WebViewEnvironment.getAvailableVersion() != null;
   }

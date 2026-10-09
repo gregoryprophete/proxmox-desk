@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'config.dart';
+import 'console_page.dart';
 import 'proxmox_api.dart';
-import 'web_pane.dart';
 
 /// Native list of virtual machines and containers with power controls.
 class GuestsScreen extends StatefulWidget {
@@ -94,9 +94,10 @@ class _GuestsScreenState extends State<GuestsScreen> {
       'resize': 'scale',
     });
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: Text('${g.vmid} · ${g.name}')),
-        body: WebPane(config: widget.config, url: url),
+      builder: (_) => ConsolePage(
+        config: widget.config,
+        title: '${g.vmid} · ${g.name}',
+        url: url,
       ),
     ));
   }
