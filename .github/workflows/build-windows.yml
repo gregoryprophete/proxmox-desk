@@ -13,6 +13,9 @@ jobs:
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      # The webview plugin still uses the older coroutine headers, which the
+      # newest Visual Studio rejects unless this is defined.
+      CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
     steps:
       - uses: actions/checkout@v4
 
