@@ -5,9 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,12 +28,44 @@ jobs:
       - run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: pwsh
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | Tee-Object analyze.log
+          exit $LASTEXITCODE
 
       - name: Build
-        run: flutter build windows --release
+        shell: pwsh
+        run: |
+          flutter build windows --release 2>&1 | Tee-Object build.log
+          exit $LASTEXITCODE
+
+      # Post the log tail as a commit comment so failures are easy to read.
+      - name: Report failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $parts = Get-ChildItem *.log | ForEach-Object {
+            "== $($_.Name) ==`n" + ((Get-Content $_ -Tail 250) -join "`n")
+          }
+          $text = $parts -join "`n`n"
+          if ($text.Length -gt 60000) { $text = $text.Substring($text.Length - 60000) }
+          $fence = '```'
+          @{ body = "Build failed.`n$fence`n$text`n$fence" } | ConvertTo-Json |
+            gh api "repos/$env:GITHUB_REPOSITORY/commits/$env:GITHUB_SHA/comments" --input -
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath proxmox-desk-windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
           name: proxmox-desk-windows
           path: build/windows/x64/runner/Release/
+
+      - name: Publish release
+        shell: pwsh
+        run: >
+          gh release create "build-$env:GITHUB_RUN_NUMBER" proxmox-desk-windows.zip
+          --title "Proxmox Desk build $env:GITHUB_RUN_NUMBER"
+          --notes "Unzip and run proxmox_desk.exe. Keep the files next to it together."
+          --target $env:GITHUB_SHA
